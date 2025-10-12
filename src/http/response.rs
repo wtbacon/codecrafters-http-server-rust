@@ -3,7 +3,7 @@ use std::net::TcpStream;
 
 use crate::http::{request::Request, status::StatusCode};
 
-const DELIMITERS: &str = "\r\n\r\n";
+const DELIMITERS: &str = "\r\n";
 
 pub fn handle_connection(mut stream: TcpStream) {
     let request = decode_request(&mut stream).unwrap();
