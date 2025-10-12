@@ -2,7 +2,7 @@ mod http;
 
 #[allow(unused_imports)]
 use crate::http::response::handle_connection;
-use std::net::TcpListener;
+use std::{net::TcpListener, thread};
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
@@ -16,7 +16,9 @@ fn main() {
         match stream {
             Ok(stream) => {
                 println!("accepted new connection");
-                handle_connection(stream);
+                thread::spawn(|| {
+                    handle_connection(stream);
+                });
             }
             Err(e) => {
                 println!("error: {}", e);
