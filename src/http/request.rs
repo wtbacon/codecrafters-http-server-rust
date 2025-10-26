@@ -1,4 +1,8 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Read, Result},
+    net::TcpStream,
+};
 
 #[derive(Debug)]
 pub struct Request {
@@ -45,6 +49,39 @@ impl RequestLine {
             version,
         }
     }
+}
+
+pub fn parse_request(stream: &mut TcpStream) -> Result<Request> {
+    let mut buf_reader = BufReader::new(stream);
+
+    let mut first_line = String::new();
+    buf_reader.read_line(&mut first_line)?;
+    let request_line = first_line.trim().to_string();
+
+    let mut headers = Vec::new();
+    loop {
+        let mut line = String::new();
+        buf_reader.read_line(&mut line)?;
+        let line = line.trim_end();
+        if line.is_empty() {
+            break;
+        }
+        headers.push(line.to_string());
+    }
+
+    let length: usize = headers
+        .iter()
+        .find(|x| x.starts_with("Content-Length:"))
+        .and_then(|x| x.split_once(":"))
+        .and_then(|(_, v)| v.trim().parse().ok())
+        .unwrap_or(0);
+
+    let mut buf = vec![0u8; length];
+    buf_reader.read_exact(&mut buf).ok();
+
+    let body = Some(String::from_utf8(buf).unwrap_or_default());
+
+    Ok(Request::new(request_line, headers, body))
 }
 
 #[cfg(test)]
