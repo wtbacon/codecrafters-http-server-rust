@@ -1,29 +1,56 @@
-use crate::http::status::StatusCode;
+use std::collections::HashMap;
+
+use crate::http::{status::StatusCode, version::Version};
 
 const DELIMITERS: &str = "\r\n";
 
-pub fn build_response(
-    status: StatusCode,
-    headers: Option<Vec<(String, String)>>,
-    body: Option<String>,
-) -> String {
-    let body = body.unwrap_or_default();
-    let content_length = body.len();
+#[derive(Debug)]
+pub struct Parts {
+    pub status_code: StatusCode,
+    pub version: Version,
+    pub headers: HashMap<String, String>,
+}
 
-    let mut response = format!("HTTP/1.1 {}{}", status.as_str(), DELIMITERS);
-
-    if let Some(hdrs) = headers {
-        for (key, value) in &hdrs {
-            response.push_str(&format!("{}: {}{}", key, value, DELIMITERS));
+impl Parts {
+    pub fn new(status_code: StatusCode, version: Version) -> Self {
+        Self {
+            status_code,
+            version,
+            headers: HashMap::new(),
         }
     }
+}
 
-    response.push_str(&format!("Content-Length: {}{}", content_length, DELIMITERS));
-    response.push_str(&format!("Content-Type: text/plain{}", DELIMITERS));
+#[derive(Debug)]
+pub struct Response {
+    pub head: Parts,
+    pub body: Option<String>,
+}
 
-    response.push_str(DELIMITERS);
+impl Response {
+    pub fn new(head: Parts, body: Option<String>) -> Self {
+        Self { head, body }
+    }
 
-    response.push_str(&body);
+    pub fn to_http(&self) -> String {
+        let body = self.body.clone().unwrap_or_default();
 
-    response
+        // Generate Status Line
+        let mut response = format!(
+            "HTTP/1.1 {} {}{}",
+            self.head.status_code.as_str(),
+            self.head.status_code.canonical_reason(),
+            DELIMITERS
+        );
+
+        // Generate Headers
+        for (key, value) in &self.head.headers {
+            response.push_str(&format!("{}: {}{}", key, value, DELIMITERS));
+        }
+        response.push_str(DELIMITERS);
+
+        // Generate Body
+        response.push_str(&body);
+        response
+    }
 }

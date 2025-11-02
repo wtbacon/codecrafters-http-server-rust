@@ -1,5 +1,7 @@
+mod handlers;
 mod http;
 mod net;
+mod route;
 
 fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.

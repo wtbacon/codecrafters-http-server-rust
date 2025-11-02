@@ -1,7 +1,8 @@
+use crate::handlers::{echo_handler, root_handler, user_agent_handler};
 use crate::http::request::parse_request;
-use crate::http::{response::build_response, status::StatusCode};
+use crate::route::Router;
+use std::io::{Error, Write};
 use std::{
-    io::Write,
     net::{TcpListener, TcpStream},
     thread,
 };
@@ -15,7 +16,9 @@ pub fn run_server(addr: &str) {
             Ok(stream) => {
                 println!("accepted new connection");
                 thread::spawn(|| {
-                    handle_connection(stream);
+                    if let Err(e) = handle_connection(stream) {
+                        eprintln!("Error handling connection: {}", e);
+                    }
                 });
             }
             Err(e) => {
@@ -25,23 +28,41 @@ pub fn run_server(addr: &str) {
     }
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    let request = parse_request(&mut stream).unwrap();
+fn handle_connection(mut stream: TcpStream) -> Result<(), Error> {
+    // let mut buf_reader = BufReader::new(stream);
+    // let mut stream_string = Vec::new();
+    // loop {
+    //     let mut line = String::new();
+
+    //     if let Err(e) = buf_reader.read_line(&mut line) {
+    //         eprintln!("Failed to read from connection: {}", e);
+    //         let response = Response::new(
+    //             StatusCode::from_u16(500).unwrap(),
+    //             None,
+    //             Some("Internal Server Error".to_string()),
+    //         );
+    //         stream.write_all(response.to_http().as_bytes()).unwrap();
+    //         stream.flush().unwrap();
+
+    //         return Ok(());
+    //     }
+
+    //     let line = line.trim();
+    //     if line.is_empty() {
+    //         break;
+    //     }
+    //     stream_string.push(line.to_string());
+    // }
+
+    let request = parse_request(&mut stream)?;
     println!("{:?}", request);
 
-    let response = match request.request_line.path.as_str() {
-        "/" => build_response(StatusCode::Ok, None, None),
-        "/user-agent" => build_response(
-            StatusCode::Ok,
-            None,
-            Some(request.headers["User-Agent"].clone()),
-        ),
-        path if path.starts_with("/echo") => {
-            let echoed_part = &path["/echo/".len()..];
-            build_response(StatusCode::Ok, None, Some(echoed_part.to_string()))
-        }
-        _ => build_response(StatusCode::NotFound, None, None),
-    };
+    let mut router = Router::new();
+    router.add_route("GET", "/", root_handler);
+    router.add_route("GET", "/echo/:msg", echo_handler);
+    router.add_route("GET", "/user-agent", user_agent_handler);
 
-    stream.write_all(response.as_bytes()).unwrap();
+    let response = router.route(&request);
+    stream.write_all(response.to_http().as_bytes()).unwrap();
+    Ok(())
 }
