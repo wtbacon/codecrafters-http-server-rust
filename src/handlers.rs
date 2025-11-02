@@ -11,7 +11,6 @@ pub fn root_handler(req: &Request, _params: HashMap<String, String>) -> Response
 }
 
 pub fn echo_handler(req: &Request, params: HashMap<String, String>) -> Response {
-    println!("Echo handler called with params: {:?}", params);
     let mut head = Parts::new(StatusCode::OK, req.head.version);
 
     let echo_part = params.get("msg").unwrap_or(&"".to_string()).clone();
@@ -25,7 +24,19 @@ pub fn echo_handler(req: &Request, params: HashMap<String, String>) -> Response 
 }
 
 pub fn user_agent_handler(req: &Request, _params: HashMap<String, String>) -> Response {
-    let user_agent = req.head.headers.get("User-Agent").cloned();
+    let mut head = Parts::new(StatusCode::OK, req.head.version);
 
-    Response::new(Parts::new(StatusCode::OK, req.head.version), user_agent)
+    let user_agent = req
+        .head
+        .headers
+        .get("User-Agent")
+        .unwrap_or(&"".to_string())
+        .clone();
+    let content_length = user_agent.len();
+    head.headers
+        .insert("Content-Length".to_string(), content_length.to_string());
+    head.headers
+        .insert("Content-Type".to_string(), "text/plain".to_string());
+
+    Response::new(head, Some(user_agent))
 }
