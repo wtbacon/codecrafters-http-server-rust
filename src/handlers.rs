@@ -75,8 +75,10 @@ pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response
         "Content-Length".to_string(),
         file_contents.len().to_string(),
     );
-    head.headers
-        .insert("Content-Type".to_string(), "text/plain".to_string());
+    head.headers.insert(
+        "Content-Type".to_string(),
+        "application/octet-stream".to_string(),
+    );
 
     Response::new(head, Some(file_contents))
 }

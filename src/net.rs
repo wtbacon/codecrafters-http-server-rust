@@ -39,6 +39,8 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), Error> {
     router.add_route("GET", "/files/:filename", crate::handlers::files_handler);
 
     let response = router.route(&request);
+    println!("{:?}", response);
+
     stream.write_all(response.to_http().as_bytes()).unwrap();
     Ok(())
 }
