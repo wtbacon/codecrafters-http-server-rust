@@ -37,6 +37,11 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), Error> {
     router.add_route("GET", "/echo/:msg", echo_handler);
     router.add_route("GET", "/user-agent", user_agent_handler);
     router.add_route("GET", "/files/:filename", crate::handlers::files_handler);
+    router.add_route(
+        "POST",
+        "/files/:filename",
+        crate::handlers::post_file_handler,
+    );
 
     let response = router.route(&request);
     println!("{:?}", response);

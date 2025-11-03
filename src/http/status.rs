@@ -7,6 +7,7 @@ pub struct StatusCode(NonZeroU16);
 
 impl StatusCode {
     pub const OK: StatusCode = StatusCode(unsafe { NonZeroU16::new_unchecked(200) });
+    pub const CREATED: StatusCode = StatusCode(unsafe { NonZeroU16::new_unchecked(201) });
     pub const NOT_FOUND: StatusCode = StatusCode(unsafe { NonZeroU16::new_unchecked(404) });
     pub const INTERNAL_SERVER_ERROR: StatusCode =
         StatusCode(unsafe { NonZeroU16::new_unchecked(500) });
@@ -46,6 +47,7 @@ impl StatusCode {
 fn canonical_reason(num: u16) -> &'static str {
     match num {
         200 => "OK",
+        201 => "Created",
         404 => "Not Found",
         500 => "Internal Server Error",
         _ => "Unknown",

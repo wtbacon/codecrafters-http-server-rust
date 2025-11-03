@@ -1,4 +1,9 @@
-use std::{collections::HashMap, fs, path};
+use std::{
+    collections::HashMap,
+    fs::{self, File},
+    io::Write,
+    path::{self, Path},
+};
 
 use crate::http::{
     request::Request,
@@ -49,7 +54,7 @@ pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response
         eprint!("{:?}", args);
         return Response::new(Parts::new(StatusCode::NOT_FOUND, req.head.version), None);
     }
-    let dir = &args[2];
+    let base_dir = Path::new(&args[2]);
 
     let filename = params.get("filename").unwrap_or(&"".to_string()).clone();
     if filename
@@ -60,7 +65,7 @@ pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response
         return Response::new(Parts::new(StatusCode::NOT_FOUND, req.head.version), None);
     }
 
-    let full_path = format!("{}/{}", dir, filename);
+    let full_path = base_dir.join(&filename);
     let file_contents = match fs::read_to_string(full_path) {
         Ok(contents) => contents,
         Err(_) => {
@@ -81,4 +86,50 @@ pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response
     );
 
     Response::new(head, Some(file_contents))
+}
+
+pub fn post_file_handler(req: &Request, params: HashMap<String, String>) -> Response {
+    let args = std::env::args().collect::<Vec<String>>();
+
+    if args.len() != 3 && args[1] != "--directory" {
+        eprint!("Server must be started with --directory <dir>");
+        eprint!("{:?}", args);
+        return Response::new(Parts::new(StatusCode::NOT_FOUND, req.head.version), None);
+    }
+    let base_dir = Path::new(&args[2]);
+
+    let filename = match params.get("filename") {
+        Some(name) => name.clone(),
+        None => {
+            eprint!("Filename parameter missing");
+            return Response::new(Parts::new(StatusCode::NOT_FOUND, req.head.version), None);
+        }
+    };
+
+    let file_path = base_dir.join(&filename);
+    let mut file = match File::create(&file_path) {
+        Ok(f) => f,
+        Err(_) => {
+            eprint!("Failed to create file");
+            return Response::new(
+                Parts::new(StatusCode::INTERNAL_SERVER_ERROR, req.head.version),
+                None,
+            );
+        }
+    };
+
+    let contents = req.body.as_ref();
+    match file.write_all(contents.unwrap_or(&"".to_string()).as_bytes()) {
+        Ok(_) => (),
+        Err(_) => {
+            eprint!("Failed to write to file");
+            return Response::new(
+                Parts::new(StatusCode::INTERNAL_SERVER_ERROR, req.head.version),
+                None,
+            );
+        }
+    }
+
+    let head = Parts::new(StatusCode::CREATED, req.head.version);
+    Response::new(head, None)
 }
