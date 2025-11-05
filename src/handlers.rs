@@ -17,15 +17,32 @@ pub fn root_handler(req: &Request, _params: HashMap<String, String>) -> Response
 
 pub fn echo_handler(req: &Request, params: HashMap<String, String>) -> Response {
     let mut head = Parts::new(StatusCode::OK, req.head.version);
-
-    let echo_part = params.get("msg").unwrap_or(&"".to_string()).clone();
-    let content_length = echo_part.len();
-    head.headers
-        .insert("Content-Length".to_string(), content_length.to_string());
     head.headers
         .insert("Content-Type".to_string(), "text/plain".to_string());
 
-    Response::new(head, Some(echo_part))
+    let echo_part = params.get("msg").unwrap_or(&"".to_string()).clone();
+    match req.head.headers.get("Accept-Encoding") {
+        Some(encoding) if encoding.contains("gzip") => {
+            let mut encoder =
+                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+            encoder.write_all(echo_part.as_bytes()).unwrap();
+            let compressed_data = encoder.finish().unwrap();
+            head.headers
+                .insert("Content-Encoding".to_string(), "gzip".to_string());
+            head.headers.insert(
+                "Content-Length".to_string(),
+                compressed_data.len().to_string(),
+            );
+            Response::new(head, Some(compressed_data))
+        }
+        _ => {
+            let content_length = echo_part.len();
+            head.headers
+                .insert("Content-Length".to_string(), content_length.to_string());
+
+            Response::new(head, Some(echo_part.into_bytes()))
+        }
+    }
 }
 
 pub fn user_agent_handler(req: &Request, _params: HashMap<String, String>) -> Response {
@@ -43,7 +60,7 @@ pub fn user_agent_handler(req: &Request, _params: HashMap<String, String>) -> Re
     head.headers
         .insert("Content-Type".to_string(), "text/plain".to_string());
 
-    Response::new(head, Some(user_agent))
+    Response::new(head, Some(user_agent.into_bytes()))
 }
 
 pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response {
@@ -85,7 +102,7 @@ pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response
         "application/octet-stream".to_string(),
     );
 
-    Response::new(head, Some(file_contents))
+    Response::new(head, Some(file_contents.into_bytes()))
 }
 
 pub fn post_file_handler(req: &Request, params: HashMap<String, String>) -> Response {

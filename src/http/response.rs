@@ -24,11 +24,11 @@ impl Parts {
 #[derive(Debug)]
 pub struct Response {
     pub head: Parts,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
 }
 
 impl Response {
-    pub fn new(head: Parts, body: Option<String>) -> Self {
+    pub fn new(head: Parts, body: Option<Vec<u8>>) -> Self {
         Self { head, body }
     }
 
@@ -50,7 +50,7 @@ impl Response {
         response.push_str(DELIMITERS);
 
         // Generate Body
-        response.push_str(&body);
+        response.push_str(&String::from_utf8_lossy(&body));
         response
     }
 }

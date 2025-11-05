@@ -1,5 +1,5 @@
 use crate::handlers::{echo_handler, root_handler, user_agent_handler};
-use crate::http::request::parse_request;
+use crate::http::request::Request;
 use crate::route::Router;
 use std::io::{Error, Write};
 use std::{
@@ -29,7 +29,7 @@ pub fn run_server(addr: &str) {
 }
 
 fn handle_connection(mut stream: TcpStream) -> Result<(), Error> {
-    let request = parse_request(&mut stream)?;
+    let request = Request::parse_request(&mut stream)?;
     println!("{:?}", request);
 
     let mut router = Router::new();
