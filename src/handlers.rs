@@ -5,6 +5,8 @@ use std::{
     path::{self, Path},
 };
 
+use flate2::{write::GzEncoder, Compression};
+
 use crate::http::{
     request::Request,
     response::{Parts, Response},
@@ -23,10 +25,12 @@ pub fn echo_handler(req: &Request, params: HashMap<String, String>) -> Response 
     let echo_part = params.get("msg").unwrap_or(&"".to_string()).clone();
     match req.head.headers.get("Accept-Encoding") {
         Some(encoding) if encoding.contains("gzip") => {
-            let mut encoder =
-                flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
-            encoder.write_all(echo_part.as_bytes()).unwrap();
-            let compressed_data = encoder.finish().unwrap();
+            let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
+            encoder
+                .write_all(echo_part.as_bytes())
+                .expect("Compression failed");
+            let compressed_data = encoder.finish().expect("Failed to finish compression");
+
             head.headers
                 .insert("Content-Encoding".to_string(), "gzip".to_string());
             head.headers.insert(
