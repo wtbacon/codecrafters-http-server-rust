@@ -46,6 +46,7 @@ fn handle_connection(mut stream: TcpStream) -> Result<(), Error> {
     let response = router.route(&request);
     println!("{:?}", response);
 
-    stream.write_all(response.to_http().as_bytes()).unwrap();
+    stream.write_all(response.to_http_headers_only().as_bytes()).unwrap();
+    stream.write_all(&response.body.clone().unwrap_or_default())?;
     Ok(())
 }

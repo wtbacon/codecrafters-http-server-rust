@@ -23,13 +23,12 @@ pub fn echo_handler(req: &Request, params: HashMap<String, String>) -> Response 
         .insert("Content-Type".to_string(), "text/plain".to_string());
 
     let echo_part = params.get("msg").unwrap_or(&"".to_string()).clone();
+    print!("Echoing message: {}", echo_part);
     match req.head.headers.get("Accept-Encoding") {
         Some(encoding) if encoding.contains("gzip") => {
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
-            encoder
-                .write_all(echo_part.as_bytes())
-                .expect("Compression failed");
-            let compressed_data = encoder.finish().expect("Failed to finish compression");
+            encoder.write_all(echo_part.as_bytes()).unwrap();
+            let compressed_data = encoder.finish().unwrap();
 
             head.headers
                 .insert("Content-Encoding".to_string(), "gzip".to_string());

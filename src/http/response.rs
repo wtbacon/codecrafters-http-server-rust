@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
 use crate::http::{status::StatusCode, version::Version};
 
@@ -32,9 +32,7 @@ impl Response {
         Self { head, body }
     }
 
-    pub fn to_http(&self) -> String {
-        let body = self.body.clone().unwrap_or_default();
-
+    pub fn to_http_headers_only(&self) -> String {
         // Generate Status Line
         let mut response = format!(
             "HTTP/1.1 {} {}{}",
@@ -48,9 +46,6 @@ impl Response {
             response.push_str(&format!("{}: {}{}", key, value, DELIMITERS));
         }
         response.push_str(DELIMITERS);
-
-        // Generate Body
-        response.push_str(&String::from_utf8_lossy(&body));
         response
     }
 }
