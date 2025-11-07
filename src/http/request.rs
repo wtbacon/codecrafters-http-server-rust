@@ -42,7 +42,7 @@ impl Request {
 }
 
 impl Request {
-    pub fn parse_request(stream: &mut TcpStream) -> Result<Request> {
+    pub fn parse_request(stream: &TcpStream) -> Result<Request> {
         let mut buf_reader = BufReader::new(stream);
 
         let mut first_line = String::new();

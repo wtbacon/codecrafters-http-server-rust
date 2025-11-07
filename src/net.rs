@@ -15,8 +15,8 @@ pub fn run_server(addr: &str) {
         match stream {
             Ok(stream) => {
                 println!("accepted new connection");
-                thread::spawn(|| {
-                    if let Err(e) = handle_connection(stream) {
+                thread::spawn(move || loop {
+                    if let Err(e) = handle_connection(&stream) {
                         eprintln!("Error handling connection: {}", e);
                     }
                 });
@@ -28,8 +28,8 @@ pub fn run_server(addr: &str) {
     }
 }
 
-fn handle_connection(mut stream: TcpStream) -> io::Result<()> {
-    let request = Request::parse_request(&mut stream)?;
+fn handle_connection(mut stream: &TcpStream) -> io::Result<()> {
+    let request = Request::parse_request(stream)?;
     println!("{:?}", request);
 
     let mut router = Router::new();
