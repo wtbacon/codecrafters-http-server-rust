@@ -14,13 +14,21 @@ use crate::http::{
 };
 
 pub fn root_handler(req: &Request, _params: HashMap<String, String>) -> Response {
-    Response::new(Parts::new(StatusCode::OK, req.head.version), None)
+    let mut head = Parts::new(StatusCode::OK, req.head.version);
+    if let Some(v) = req.head.headers.get("Connection") {
+        head.headers.insert("Connection".to_string(), v.to_string());
+    }
+
+    Response::new(head, None)
 }
 
 pub fn echo_handler(req: &Request, params: HashMap<String, String>) -> Response {
     let mut head = Parts::new(StatusCode::OK, req.head.version);
     head.headers
         .insert("Content-Type".to_string(), "text/plain".to_string());
+    if let Some(v) = req.head.headers.get("Connection") {
+        head.headers.insert("Connection".to_string(), v.to_string());
+    }
 
     let echo_part = params.get("msg").unwrap_or(&"".to_string()).clone();
     print!("Echoing message: {}", echo_part);
@@ -62,6 +70,9 @@ pub fn user_agent_handler(req: &Request, _params: HashMap<String, String>) -> Re
         .insert("Content-Length".to_string(), content_length.to_string());
     head.headers
         .insert("Content-Type".to_string(), "text/plain".to_string());
+    if let Some(v) = req.head.headers.get("Connection") {
+        head.headers.insert("Connection".to_string(), v.to_string());
+    }
 
     Response::new(head, Some(user_agent.into_bytes()))
 }
@@ -104,6 +115,9 @@ pub fn files_handler(req: &Request, params: HashMap<String, String>) -> Response
         "Content-Type".to_string(),
         "application/octet-stream".to_string(),
     );
+    if let Some(v) = req.head.headers.get("Connection") {
+        head.headers.insert("Connection".to_string(), v.to_string());
+    }
 
     Response::new(head, Some(file_contents.into_bytes()))
 }

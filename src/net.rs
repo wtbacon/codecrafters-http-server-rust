@@ -16,8 +16,17 @@ pub fn run_server(addr: &str) {
             Ok(stream) => {
                 println!("accepted new connection");
                 thread::spawn(move || loop {
-                    if let Err(e) = handle_connection(&stream) {
-                        eprintln!("Error handling connection: {}", e);
+                    match handle_connection(&stream) {
+                        Ok(should_close) => {
+                            if should_close {
+                                println!("Closing connection");
+                                break;
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Error handling connection: {}", e);
+                            break;
+                        }
                     }
                 });
             }
@@ -28,7 +37,7 @@ pub fn run_server(addr: &str) {
     }
 }
 
-fn handle_connection(mut stream: &TcpStream) -> io::Result<()> {
+fn handle_connection(mut stream: &TcpStream) -> io::Result<bool> {
     let request = Request::parse_request(stream)?;
     println!("{:?}", request);
 
@@ -42,11 +51,14 @@ fn handle_connection(mut stream: &TcpStream) -> io::Result<()> {
     let response = router.route(&request);
     println!("{:?}", response);
 
-    stream
-        .write_all(response.to_http_headers_only().as_bytes())
-        .unwrap();
-    stream
-        .write_all(&response.body.clone().unwrap_or_default())
-        .unwrap();
-    stream.flush()
+    stream.write_all(response.to_http_headers_only().as_bytes())?;
+    stream.write_all(&response.body.unwrap_or_default())?;
+
+    let should_close = response
+        .head
+        .headers
+        .get("Connection")
+        .is_some_and(|conn| conn.to_lowercase() == "close");
+
+    Ok(should_close)
 }
